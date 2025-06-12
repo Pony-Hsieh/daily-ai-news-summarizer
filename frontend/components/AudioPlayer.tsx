@@ -8,6 +8,7 @@ interface Article {
   source: string;
   summary: string;
   audio_file: string;
+  audio_path?: string;
   published_date?: string;
   content_type: string;
 }
@@ -24,13 +25,31 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ article, onClose }) => {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  const getAudioUrl = () => {
+    const { id, audio_file, audio_path } = article;
+    if (!audio_file && !audio_path) {
+      console.error(`音訊路徑可能有誤，可透過專案中全域查找 id 確認： ${id}`);
+      return '';
+    }
+    if (audio_path) {
+      return audio_path;
+    }
+    if (audio_file) {
+      if (audio_file.startsWith('audio/articles')) {
+        return `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/${audio_file}`;
+      } else {
+        return `${process.env.NEXT_PUBLIC_GITHUB_AUDIO_STORAGE_URL}/${id}.mp3`;
+      }
+    }
+    console.error(
+      `音訊路徑可能有未知型別，請檢查資料：id=${id} audio_file=${typeof audio_file} audio_path=${typeof audio_path}`
+    );
+    return '';
+  };
+
   // 設定音訊檔 URL
-  let audioUrl;
-  if (article.audio_file.startsWith('audio/articles')) {
-    audioUrl = `${process.env.SUPABASE_STORAGE_URL}/${article.audio_file}`;
-  } else {
-    audioUrl = `${process.env.NEXT_PUBLIC_API_URL}/audio/${article.id}`;
-  }
+  const audioUrl = getAudioUrl();
+  // console.log('audioUrl', audioUrl);
 
   // 播放暂停
   const togglePlay = () => {
